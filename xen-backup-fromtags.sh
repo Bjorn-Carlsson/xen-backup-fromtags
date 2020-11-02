@@ -3,6 +3,8 @@
 #########################################################################################
 # Script to manage XEN backups based on tags, bjorn.carlsson@veriscan.se, bjorn@beze.se
 # Rev: 2020-10-14 Initial beta version
+#      2020-11-02 Modified monthly schema to happen same day as weekly, will reduce the
+#                 number of redundant backups performed in most cases
 #
 # The script will backup vm:s based on a number of vm-tags set in XEN center:
 # "daily", backup every day, save as date[yyyy-mm-dd]
@@ -109,8 +111,8 @@ function backupVM
 			test ! -f "${exportFile}" && exportVM
 		;;
 		"monthly")
-			# Run a monthly backup first sunday every month
-			if [[ ${DoM} -lt 8 && ${DoW} == 7 ]]; then
+			# Run a monthly backup first saturday every month
+			if [[ ${DoM} -lt 8 && ${DoW} == 6 ]]; then
 				# Make a new backup if this VM is not already backed up, or if setting is to always make a new backup
 				if [[ "${lastVmName}" != "${vmName}" || "${duplicateBackupMethod}" == "newBackup" ]]; then
 					exportDir="${backupDirMonthly}/$(date +%Y-%m-%d)/${vmName}"
