@@ -36,11 +36,12 @@ be defined for each type of backup by specifying nbr of days. Default cleanup se
 Backups older than these settings will be erased prior backup...
 
 Script includes logging functionality and if executed in terminal script will write to std-out letting you know whats going on. 
-Logging can be set as "extensive" for detailed logging and mail reports. The script also includes a function to send email reports 
-using other email settings than defined in XEN-center not utilizing Xen native ssmtp. This makes it possible to use another mail 
-gateway and port than configured in the Xen-center set-up. Please note that you may have to adjust the sendScriptMail function "expect"
-lines according to expected responces from your mail gateway.
+Logging can be set as "extensive" for detailed logging and mail reports.
 
 The script also includes a setting to enable compression; valid options are: "gzip" and "pigzee". Using the "pigzee" option will enable 
 parallell processing gzip for super fast backups. PLEASE NOTE: For the pigzee-option to work you must first install pigz. e.g.:
 wget http://mirror.centos.org/centos/7/extras/x86_64/Packages/pigz-2.3.3-1.el7.centos.x86_64.rpm && rpm -ivh pigz-2.3.3-1.el7.centos.x86_64.rpm
+
+
+## Compability
+The script have been tested and verified to work properly on hosts running hypervisor versions from XEN v7.1 until XCP-ng 8.2 with no issues found so far.
