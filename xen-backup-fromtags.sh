@@ -5,6 +5,7 @@
 # Rev: 2020-10-14 Initial beta version
 #      2020-11-02 Modified monthly schema to happen same day as weekly, will reduce the
 #                 number of redundant backups performed in most cases
+#      2020-12-28 Removed expect-script option, instead just edit /etc/ssmtp/ssmtp.conf
 #
 # The script will backup vm:s based on a number of vm-tags set in XEN center:
 # "daily", backup every day, save as date[yyyy-mm-dd]
@@ -42,9 +43,9 @@ backupDirMeta="/run/sr-mount/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxxx/xen/vm-metada
 # Cleanup nbr of days, backups older than these settings will be erased prior backup
 cleanupBackupDirDaily="3"		# KEEP 4 DAILY BACKUPS, CURRENT AND 3 PREVIOUS
 cleanupBackupDirWeekly="21"		# KEEP 3 WEEKS
-cleanupBackupDirMonthly="93"	# KEEP 3 MONTHS
-cleanupBackupDirArchive="false"	# No cleanup
-cleanupBackupDirMeta="false"	# No cleanup
+cleanupBackupDirMonthly="93"		# KEEP 3 MONTHS
+cleanupBackupDirArchive="false"		# No cleanup
+cleanupBackupDirMeta="false"		# No cleanup
 
 # Uncomment to control directory and file security options
 backupDirPermissions="777"
@@ -60,18 +61,10 @@ backupFilePermissions="644"
 # NFS filestores as symlinks will not be valid outside the Xen context.
 duplicateBackupMethod="newBackup"
 
-# Mailsettings
+# Mailsettings, make sure to also edit /etc/ssmtp/ssmtp.conf to enable ssmtp
 mailFrom="kxen01@mydomain.org"
 mailTo="support@mydomain.org"
 mailSubject="Xenbackup on $(hostname) is done"
-
-# Uncomment to send email using this script instead of utilizing Xen native ssmtp. This
-# makes it possible to use another mail gateway and port than configured in the Xen
-# set-up. Please note that you may have to adjust the sendScriptMail function "expect"
-# lines according to expected responces from your mail gateway.
-#mailUseScript="true"
-#mailServerIP="nnn.nnn.nnn.nnn"
-#mailServerPort="587"
 
 # Uncomment to set logSetting="extensive" for detailed logging and mail reports
 #logSetting="extensive"
@@ -287,69 +280,11 @@ function logMessage
 	echo "[$(date +%Y-%m-%d_%H-%M-%S)] ${1}"
 }
 
-# This function uses expect code to send email directly from this script instead of using 
-# XEN mail settings.
-function sendScriptMail
-{
-	/usr/bin/expect <(cat << EOF
-#########################################################################################
-# This is expect code, sent to the expect binary
-
-# Timeout setting in case expected responce is not met
-set timeout 60
-
-#########################################################################################
-# This spawns the telnet program and connects to the mailserver
-spawn telnet $mailServerIP $mailServerPort
-
-#########################################################################################
-# Different mailservers responds differently, so you probably need to adjust according to
-# your server. The expected server responses below are valid for a MS exchange 2019 server
-# and SurgeMail Version 7.4.(Another approach would be to just wait for the "timeout" to 
-# send each command...)
-
-#expect ".com\r" #Verified with Surgemail using a .com domain
-expect "00\r" #Verified with Exchange
-send "HELO ${hostName}\r"
-
-#expect ")\r" #Verified with Surgemail
-expect "]\r" #Verified with Exchange
-send "MAIL FROM: <${mailFrom}>\r"
-
-expect "OK\r" #Verified with Surgemail & Exchange
-send "RCPT TO: <${mailTo}>\r"
-
-#expect "ok\r" #Verified with Surgemail
-expect "OK\r" #Verified with Exchange
-send "DATA\r"
-
-expect "<CRLF>.<CRLF>\r" #Verified with Surgemail & Exchange
-send "Content-Type: text/plain\rFrom: ${mailFrom}\rTo: ${mailTo}\rSubject: ${mailSubject}\r\r"
-send -- "[read [open "${scriptMailFile}" r]]"
-
-expect "\r" #Verified with Surgemail & Exchange
-send "\r\r.\r"
-
-#expect "ok\r" #Verified with Surgemail
-expect "delivery\r" #Verified with Exchange
-send "QUIT\r"
-
-# Thats it folks, mail is sent!
-#########################################################################################
-EOF
-)
-}
-
 function sendlLog
 {
 	if [[ "${sendMail}" = "true" && "${mailFrom}" != "" && "${mailTo}" != "" && "${mailSubject}" != "" ]]; then
-		if [[ "${mailUseScript}" == "true" ]]; then
-			hostName=$(hostname)
-			sendScriptMail
-		else
-			mailBody="$(cat $scriptMailFile)"
-			printf "From: <%s>\nTo: <%s>\nSubject: %s\n\n%s" "$mailFrom" "$mailTo" "$mailSubject" "$mailBody" | ssmtp "$mailTo"
-		fi
+		mailBody="$(cat $scriptMailFile)"
+		printf "From: <%s>\nTo: <%s>\nSubject: %s\n\n%s" "$mailFrom" "$mailTo" "$mailSubject" "$mailBody" | ssmtp "$mailTo"
 	fi
 }
 
