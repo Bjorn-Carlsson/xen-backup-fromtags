@@ -7,9 +7,9 @@ A single script to manage XEN backups based on tags. The script will backup vm:s
 
 vm-tags can be combined; If duplicate backups are detected, for example if a daily 
 backup is triggered at the same time as a monthly backup, the script will use the 
-duplicateBackupMethod setting to determine how to handle the situation; in case the same VM is 
-targeted for several backups simultaneously, one VM backed gets up in two or more of the archive, 
-monthly, weekly, or daily backups. Valid options are: "newBackup", "copyBackup", "textFile" or "symLink".
+duplicateBackupMethod setting to determine how to handle the situation.
+
+Valid options are: "newBackup", "copyBackup", "textFile" or "symLink".
 
 Duplicates are evaluated in the order: 1. archive, 2. monthly, 3, weekly, 4 daily to 
 minimize the risk that original backup is replaced causing a textfile reference or a
