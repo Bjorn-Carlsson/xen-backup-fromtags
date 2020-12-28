@@ -32,6 +32,7 @@ be defined for each type of backup by specifying nbr of days. Default cleanup se
 * cleanupBackupDirMonthly="93"	# KEEP 3 MONTHS
 * cleanupBackupDirArchive="false"	# No cleanup
 * cleanupBackupDirMeta="false"	# No cleanup
+
 Backups older than these settings will be erased prior backup...
 
 Script includes logging functionality and if executed in terminal script will write to std-out letting you know whats going on. 
