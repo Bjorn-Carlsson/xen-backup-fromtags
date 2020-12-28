@@ -22,7 +22,7 @@ characters in names. The script includes a setting to to backup also halted VMs.
 To exclude a disk from backup for any reason, add the tag "exclude_" followed by backup
 type. E.g. disk-tag "exclude_weekly" to the disk in XEN-center will exclude the disk 
 from weekly backups. PLEASE NOTE: This will not work for duplicate backups in case 
-defining any other "duplicateBackupMethod" setting that "newBackup". The first backup
+defining any other "duplicateBackupMethod" setting than "newBackup". The first backup
 will otherwise will be used as source along with all disks included in that backup.
 
 Different filestores may be defined for each type of backup using a valid path in the XEN-master and cleanup rules can 
