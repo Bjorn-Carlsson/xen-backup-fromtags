@@ -6,6 +6,8 @@
 #      2020-11-02 Modified monthly schema to happen same day as weekly, will reduce the
 #                 number of redundant backups performed in most cases
 #      2020-12-28 Removed expect-script option, instead just edit /etc/ssmtp/ssmtp.conf
+#      2021-05-24 Added option to to set ownership of backup files, 
+#                 Added error handling in case backup directory can not be created
 #
 # The script will backup vm:s based on a number of vm-tags set in XEN center:
 # "daily", backup every day, save as date[yyyy-mm-dd]
@@ -22,6 +24,9 @@
 # from weekly backups. PLEASE NOTE: This will not work for duplicate backups in case 
 # defining any other "duplicateBackupMethod" setting that "newBackup". The first backup
 # will otherwise will be used as source along with all disks included in that backup.
+#
+# TODO: Implement incremental VDI-snapshot backups as supported in Xen Orchestra, see
+# https://xapi-project.github.io/xen-api/snapshots.html
 #########################################################################################
 
 #########################################################################################
@@ -91,7 +96,7 @@ function backupVM
 	# ${vmName}
 	# ${vmUuid}
 	# ${vmTags}
-	# ${lastVmName} (Name of last backed up VM)
+	# ${lastVmName} (Name of last backed-up VM)
 
 	# Start checking what to backup
 	for vmTag in ${vmTags}; do
@@ -242,15 +247,6 @@ function startLog
 	logMessage "------------------------------------------------------------------------------------"
 }
 
-# Trailing log entry after completed backup
-function endLog
-{
-	logMessage "------------------------------------------------------------------------------------"
-	logMessage "VM Backup ENDED at $(date +%Y-%m-%d_%H-%M-%S)"
-	logMessage "------------------------------------------------------------------------------------"
-	logMessage "------------------------------------------------------------------------------------"
-}
-
 # Log entry preceeding logging of each backuped VM
 function logStartVM
 {
@@ -301,16 +297,25 @@ function cleanUp
 
 function setPermissions
 {
-	# ${1}; directory to chmod
+	# ${1}; directory to chmod and chown
 	test "${backupDirPermissions}" != "" && find "${1}" -type d -exec chmod "${backupDirPermissions}" {} +
 	test "${backupFilePermissions}" != "" && find "${1}" -type f -exec chmod "${backupFilePermissions}" {} +
+	test "${backupOwner}" != "" && chown -R "${backupOwner}" "${1}"
 }
 
 function createDir
 {
 	# ${1}; directory to create
 	test ! -d "${1}" && mkdir -p "${1}"
+	test ! -d "${1}" && writeError "${1}"
 	setPermissions "${1}"
+}
+
+function writeError
+{
+	# ${1}; directory in error
+	logMessage "Error creating directory $1: Exiting backup script!"
+	endScript
 }
 
 function metaBackup
@@ -326,6 +331,19 @@ function metaBackup
 	xe pool-dump-database file-name="${backupDirMeta}/$(date +%Y-%m-%d)/${xenPoolname}/xen-metadata.xml"
 	extensiveLogMessage "${xenPoolname}: XEN metadata backup saved as ${backupDirMeta}/$(date +%Y-%m-%d)/${xenPoolname}/xen-metadata.xml"
 	logMessage "${xenPoolname}: Metadata backup completed"
+}
+
+# Write trailing log entry, send mail and end script
+function endScript
+{
+	logMessage "------------------------------------------------------------------------------------"
+	logMessage "VM Backup ENDED at $(date +%Y-%m-%d_%H-%M-%S)"
+	logMessage "------------------------------------------------------------------------------------"
+	logMessage "------------------------------------------------------------------------------------"
+	# Remove lockfile to allow script to run again!
+	test -f "${scriptLockFile}" && rm -f "${scriptLockFile}"
+	sendlLog
+	exit
 }
 
 #########################################################################################
@@ -431,10 +449,4 @@ extensiveLogMessage "Permissions on folders and files set according to settings:
 
 #########################################################################################
 # End of script, finish log and send log via mail
-endLog
-
-# Remove lockfile to allow script to run again!
-test -f "${scriptLockFile}" && rm -f "${scriptLockFile}"
-
-# Send email with backup log
-sendlLog
+endScript
